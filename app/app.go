@@ -3,7 +3,6 @@ package app
 import (
 	"flag"
 	"fmt"
-	"github.com/bepass-org/wireguard-go/psiphon"
 	"github.com/bepass-org/wireguard-go/warp"
 	"github.com/bepass-org/wireguard-go/wiresocks"
 	"log"
@@ -102,13 +101,13 @@ func runWarpWithPsiphon(bindAddress string, endpoints []string, country string, 
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
 	// run psiphon
-	psiphonCtx := psiphon.RunPsiphon(warpBindAddress, bindAddress, country)
+	// psiphonCtx := psiphon.RunPsiphon(warpBindAddress, bindAddress, country)
 
 	log.Printf("Serving on %s\n", bindAddress)
 	// Wait for interrupt signal
 	<-sigChan
 
-	psiphonCtx.Done()
+	// psiphonCtx.Done()
 }
 
 func runWarpInWarp(bindAddress string, endpoints []string, verbose bool) {
