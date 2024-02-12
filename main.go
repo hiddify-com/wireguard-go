@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"github.com/bepass-org/wireguard-go/app"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func usage() {
@@ -21,10 +25,23 @@ func main() {
 		psiphonEnabled = flag.Bool("cfon", false, "enable psiphonEnabled over warp")
 		gool           = flag.Bool("gool", false, "enable warp gooling")
 		scan           = flag.Bool("scan", false, "enable warp scanner(experimental)")
+		rtt            = flag.Int("rtt", 1000, "scanner rtt threshold, default 1000")
 	)
 
 	flag.Usage = usage
 	flag.Parse()
 
-	app.RunWarp(*psiphonEnabled, *gool, *scan, *verbose, *country, *bindAddress, *endpoint, *license)
+	sigchan := make(chan os.Signal)
+	signal.Notify(sigchan, os.Interrupt, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		err := app.RunWarp(*psiphonEnabled, *gool, *scan, *verbose, *country, *bindAddress, *endpoint, *license, ctx, *rtt)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	<-sigchan
+	cancel()
 }

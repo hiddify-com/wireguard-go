@@ -2,6 +2,7 @@ package wiresocks
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"net/netip"
@@ -59,7 +60,7 @@ func createIPCRequest(conf *DeviceConfig) (*DeviceSetting, error) {
 }
 
 // StartWireguard creates a tun interface on netstack given a configuration
-func StartWireguard(conf *DeviceConfig, verbose bool) (*VirtualTun, error) {
+func StartWireguard(conf *DeviceConfig, verbose bool, ctx context.Context) (*VirtualTun, error) {
 	setting, err := createIPCRequest(conf)
 	if err != nil {
 		return nil, err
@@ -93,5 +94,7 @@ func StartWireguard(conf *DeviceConfig, verbose bool) (*VirtualTun, error) {
 		Logger: DefaultLogger{
 			verbose: verbose,
 		},
+		Dev: dev,
+		Ctx: ctx,
 	}, nil
 }
