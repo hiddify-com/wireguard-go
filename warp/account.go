@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -208,31 +207,31 @@ func saveIdentity(accountData *AccountData, identityPath string) error {
 	return file.Close()
 }
 
-func loadIdentity(identityPath string) (accountData *AccountData, err error) {
-	file, err := os.Open(identityPath)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, err
-	}
+// func loadIdentity(identityPath string) (accountData *AccountData, err error) {
+// 	file, err := os.Open(identityPath)
+// 	if err != nil {
+// 		fmt.Println("Error:", err)
+// 		return nil, err
+// 	}
 
-	defer func(file *os.File) {
-		err = file.Close()
-		if err != nil {
-			fmt.Println("Error:", err)
-		}
-		return
-	}(file)
+// 	defer func(file *os.File) {
+// 		err = file.Close()
+// 		if err != nil {
+// 			fmt.Println("Error:", err)
+// 		}
+// 		return
+// 	}(file)
 
-	accountData = &AccountData{}
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&accountData)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, err
-	}
+// 	accountData = &AccountData{}
+// 	decoder := json.NewDecoder(file)
+// 	err = decoder.Decode(&accountData)
+// 	if err != nil {
+// 		fmt.Println("Error:", err)
+// 		return nil, err
+// 	}
 
-	return accountData, nil
-}
+// 	return accountData, nil
+// }
 
 func enableWarp(accountData *AccountData) error {
 	data := map[string]interface{}{
@@ -486,7 +485,12 @@ func setDeviceActive(accountData *AccountData, status bool) (bool, error) {
 
 	return false, nil
 }
-
+type WireguardConfig{
+	PrivateKey string
+	LocalAddressIPv4 string
+	LocalAddressIPv6 string
+	PeerPublicKey string
+}
 func getWireguardConfig(privateKey, address1, address2, publicKey, endpoint string) string {
 
 	var buffer bytes.Buffer
@@ -514,6 +518,7 @@ func createConf(accountData *AccountData, confData *ConfigurationData) error {
 
 	return os.WriteFile(profileFile, []byte(config), 0600)
 }
+
 
 func LoadOrCreateIdentity(license string) error {
 	var accountData *AccountData
@@ -590,6 +595,74 @@ func LoadOrCreateIdentity(license string) error {
 	fmt.Println(filepath.Abs(identityFile))
 	fmt.Println(filepath.Abs(profileFile))
 	return nil
+}
+
+func LoadOrCreateIdentityHiddify(license string, accountData AccountData) (*AccountData, string, *WireguardConfig, error) {
+	if accountData == nil {
+		accountData = AccountData{}
+	}
+
+	if accountData == nil {
+		accountData, err = doRegister()
+		if err != nil {
+			return nil, "",nil, err
+		}
+		accountData.LicenseKey = license
+	}
+
+	fmt.Println("Getting configuration...")
+	confData, err := getServerConf(accountData)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	// updating license key
+	fmt.Println("Updating account license key...")
+	result, err := updateLicenseKey(accountData, confData)
+	if err != nil {
+		return nil, "", nil, err
+	}
+	if result {
+		confData, err = getServerConf(accountData)
+		if err != nil {
+			return nil, "", nil, err
+		}
+	}
+
+	deviceStatus, err := getDeviceActive(accountData)
+	if err != nil {
+		return nil, "", nil, err
+	}
+	if !deviceStatus {
+		fmt.Println("This device is not registered to the account!")
+	}
+
+	if confData.WarpPlusEnabled && !deviceStatus {
+		fmt.Println("Enabling device...")
+		deviceStatus, err = setDeviceActive(accountData, true)
+	}
+
+	if !confData.WarpEnabled {
+		fmt.Println("Enabling Warp...")
+		err := enableWarp(accountData)
+		if err != nil {
+			return nil, "", nil, err
+		}
+		confData.WarpEnabled = true
+	}
+
+	res := fmt.Sprintf("Warp+ enabled: %t\n", confData.WarpPlusEnabled)
+	res += fmt.Sprintf("\nDevice activated: %t\n", deviceStatus)
+	res += fmt.Sprintf("\nAccount type: %s\n", confData.AccountType)
+	fmt.Println(res)
+	fmt.Println("Creating WireGuard configuration...")
+	config := WireguardConfig{
+		PrivateKey:accountData.PrivateKey, 
+		LocalAddressIPv4:confData.LocalAddressIPv4,
+		LocalAddressIPv6:confData.LocalAddressIPv6,
+		PeerPublicKey:confData.EndpointPublicKey
+	}
+	return accountData, res, config, nil
 }
 
 func fileExist(f string) bool {
