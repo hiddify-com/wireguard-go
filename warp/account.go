@@ -602,7 +602,8 @@ func LoadOrCreateIdentity(license string) error {
 func LoadOrCreateIdentityHiddify(license string, accountData *AccountData) (*AccountData, string, *WireguardConfig, error) {
 
 	if accountData == nil {
-		accountData, err := doRegister()
+		var err error
+		accountData, err = doRegister()
 		if err != nil {
 			return nil, "", nil, err
 		}
