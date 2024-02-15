@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -207,31 +208,31 @@ func saveIdentity(accountData *AccountData, identityPath string) error {
 	return file.Close()
 }
 
-// func loadIdentity(identityPath string) (accountData *AccountData, err error) {
-// 	file, err := os.Open(identityPath)
-// 	if err != nil {
-// 		fmt.Println("Error:", err)
-// 		return nil, err
-// 	}
+func loadIdentity(identityPath string) (accountData *AccountData, err error) {
+	file, err := os.Open(identityPath)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return nil, err
+	}
 
-// 	defer func(file *os.File) {
-// 		err = file.Close()
-// 		if err != nil {
-// 			fmt.Println("Error:", err)
-// 		}
-// 		return
-// 	}(file)
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+		return
+	}(file)
 
-// 	accountData = &AccountData{}
-// 	decoder := json.NewDecoder(file)
-// 	err = decoder.Decode(&accountData)
-// 	if err != nil {
-// 		fmt.Println("Error:", err)
-// 		return nil, err
-// 	}
+	accountData = &AccountData{}
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&accountData)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return nil, err
+	}
 
-// 	return accountData, nil
-// }
+	return accountData, nil
+}
 
 func enableWarp(accountData *AccountData) error {
 	data := map[string]interface{}{
@@ -485,12 +486,14 @@ func setDeviceActive(accountData *AccountData, status bool) (bool, error) {
 
 	return false, nil
 }
-type WireguardConfig{
-	PrivateKey string
+
+type WireguardConfig struct {
+	PrivateKey       string
 	LocalAddressIPv4 string
 	LocalAddressIPv6 string
-	PeerPublicKey string
+	PeerPublicKey    string
 }
+
 func getWireguardConfig(privateKey, address1, address2, publicKey, endpoint string) string {
 
 	var buffer bytes.Buffer
@@ -518,7 +521,6 @@ func createConf(accountData *AccountData, confData *ConfigurationData) error {
 
 	return os.WriteFile(profileFile, []byte(config), 0600)
 }
-
 
 func LoadOrCreateIdentity(license string) error {
 	var accountData *AccountData
@@ -597,15 +599,12 @@ func LoadOrCreateIdentity(license string) error {
 	return nil
 }
 
-func LoadOrCreateIdentityHiddify(license string, accountData AccountData) (*AccountData, string, *WireguardConfig, error) {
-	if accountData == nil {
-		accountData = AccountData{}
-	}
+func LoadOrCreateIdentityHiddify(license string, accountData *AccountData) (*AccountData, string, *WireguardConfig, error) {
 
 	if accountData == nil {
-		accountData, err = doRegister()
+		accountData, err := doRegister()
 		if err != nil {
-			return nil, "",nil, err
+			return nil, "", nil, err
 		}
 		accountData.LicenseKey = license
 	}
@@ -657,12 +656,12 @@ func LoadOrCreateIdentityHiddify(license string, accountData AccountData) (*Acco
 	fmt.Println(res)
 	fmt.Println("Creating WireGuard configuration...")
 	config := WireguardConfig{
-		PrivateKey:accountData.PrivateKey, 
-		LocalAddressIPv4:confData.LocalAddressIPv4,
-		LocalAddressIPv6:confData.LocalAddressIPv6,
-		PeerPublicKey:confData.EndpointPublicKey
+		PrivateKey:       accountData.PrivateKey,
+		LocalAddressIPv4: confData.LocalAddressIPv4,
+		LocalAddressIPv6: confData.LocalAddressIPv6,
+		PeerPublicKey:    confData.EndpointPublicKey,
 	}
-	return accountData, res, config, nil
+	return accountData, res, &config, nil
 }
 
 func fileExist(f string) bool {

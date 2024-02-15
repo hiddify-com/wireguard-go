@@ -1,8 +1,7 @@
 module github.com/bepass-org/wireguard-go
 
-go 1.21.1
+go 1.20
 
-toolchain go1.21.6
 
 require (
 	github.com/MakeNowJust/heredoc/v2 v2.0.1
