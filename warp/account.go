@@ -150,7 +150,7 @@ func doRegister() (*AccountData, error) {
 
 	req, err := http.NewRequest("POST", regURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in newreg reg post %v", err)
 	}
 
 	// Set headers
@@ -161,23 +161,21 @@ func doRegister() (*AccountData, error) {
 	// Create HTTP client and execute request
 	response, err := client.Do(req)
 	if err != nil {
-		fmt.Println("sending request to remote server", err)
-		return nil, err
+		return nil, fmt.Errorf("error in sending request to remote server %v", err)
 	}
 
 	// convert response to byte array
 	responseData, err := io.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("reading response body", err)
-		return nil, err
+		return nil, fmt.Errorf("reading response body %v", err)
 	}
 
 	var rspData interface{}
 
 	err = json.Unmarshal(responseData, &rspData)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, err
+		fmt.Printf("Error in converting to json: %v, %s\n", err, string(responseData))
+		return nil, fmt.Errorf(string(responseData))
 	}
 
 	m := rspData.(map[string]interface{})
